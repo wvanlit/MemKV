@@ -14,6 +14,8 @@ and Command =
     | Ping of string option
     | Set of string * string
     | Get of string
+    | Exists of string list
+    | Del of string list
 
 module Message =
     let terminator = "\r\n"
@@ -57,12 +59,22 @@ module Message =
             | _ -> failwith "todo"
         | _ -> (Error($"Could not parse: {data}"), remainder)
 
+    let private parseKeys (keys: DataType list) =
+        List.map
+            (fun key ->
+                match key with
+                | BulkString(Some s) -> s
+                | _ -> failwith "Key should be a bulk string")
+            keys
+
     let private parseCommand (data: DataType) : Command option =
         match data with
         | Array(Some [ BulkString(Some "PING") ]) -> (Ping None) |> Some
         | Array(Some [ BulkString(Some "PING"); BulkString(Some value) ]) -> Some(Ping(Some value))
         | Array(Some [ BulkString(Some "SET"); BulkString(Some key); BulkString(Some value) ]) -> Some(Set(key, value))
         | Array(Some [ BulkString(Some "GET"); BulkString(Some key) ]) -> Some(Get key)
+        | Array(Some(BulkString(Some "EXISTS") :: keys)) -> keys |> parseKeys |> Exists |> Some
+        | Array(Some(BulkString(Some "DEL") :: keys)) -> keys |> parseKeys |> Del |> Some
         | _ -> None
 
     let parseMessage (data: string) : DataType =

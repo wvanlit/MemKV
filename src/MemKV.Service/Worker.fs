@@ -13,22 +13,34 @@ type Worker(logger: ILogger<Worker>) =
 
     let DEFAULT_REDIS_PORT = 6379
     let BUFFER_SIZE = 1024
-    
+
     let storage = System.Collections.Generic.SortedDictionary<string, string>()
 
     member private this.HandleCommand(command) =
         match command with
         | Ping opt ->
             match opt with
-            | Some s -> BulkString (Some s)
+            | Some s -> BulkString(Some s)
             | None -> SimpleString "PONG"
         | Set(k, v) ->
             storage[k] <- v
             SimpleString "OK"
         | Get k ->
             match storage.TryGetValue k with
-            | true, v -> BulkString (Some v)
+            | true, v -> BulkString(Some v)
             | false, _ -> BulkString None
+        | Exists keys ->
+            keys
+            |> List.map storage.ContainsKey
+            |> List.map (fun b -> if b then 1 else 0)
+            |> List.sum
+            |> Integer
+        | Del keys ->
+            keys
+            |> List.map storage.Remove
+            |> List.map (fun b -> if b then 1 else 0)
+            |> List.sum
+            |> Integer
 
     member private this.HandleClient(client: TcpClient, ct: CancellationToken) =
         task {
@@ -50,9 +62,12 @@ type Worker(logger: ILogger<Worker>) =
                     let response =
                         match protocolMsg with
                         | Cmd cmd -> this.HandleCommand cmd
-                        | data -> data
-                    
-                    let responseBuffer = response |> Message.serialize |> System.Text.Encoding.ASCII.GetBytes
+                        | data ->
+                            logger.LogWarning("Unsupported message: {data}", data)
+                            Error "Unsupported command"
+
+                    let responseBuffer =
+                        response |> Message.serialize |> System.Text.Encoding.ASCII.GetBytes
 
                     do! stream.WriteAsync(responseBuffer, 0, responseBuffer.Length, ct)
         }
