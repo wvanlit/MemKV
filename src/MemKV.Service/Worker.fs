@@ -1,4 +1,4 @@
-namespace MemKV.Service
+namespace MemKV
 
 open System.Net
 open System.Net.Sockets

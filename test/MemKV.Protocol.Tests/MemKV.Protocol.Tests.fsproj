@@ -21,7 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\MemKV.Protocol\MemKV.Protocol.fsproj" />
+      <ProjectReference Include="..\..\src\MemKV.Service\MemKV.Service.fsproj" />
     </ItemGroup>
 
 </Project>
