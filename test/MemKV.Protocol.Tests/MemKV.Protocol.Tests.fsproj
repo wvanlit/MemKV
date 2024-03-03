@@ -2,19 +2,26 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
+    </PropertyGroup>
+
+    <PropertyGroup>
         <GenerateProgramFile>false</GenerateProgramFile>
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Sample.fs"/>
-        <Compile Include="Main.fs"/>
+        <Compile Include="MessageTests.fs" />
+        <Compile Include="Program.fs" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Expecto" Version="9.*"/>
-        <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.*"/>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*"/>
-        <PackageReference Update="FSharp.Core" Version="6.*"/>
+      <PackageReference Include="Expecto" Version="10.1.0" />
+      <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.3.0" />
+      <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.14.3" />
     </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\src\MemKV.Protocol\MemKV.Protocol.fsproj" />
+    </ItemGroup>
+
 </Project>

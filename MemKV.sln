@@ -1,6 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "MemKV.Service", "MemKV.Service\MemKV.Service.fsproj", "{88C0B673-339D-443F-ADAF-57614A20C206}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "MemKV.Service", "src\MemKV.Service\MemKV.Service.fsproj", "{ADFAEFF2-8CE9-4826-9BD0-A2662FF909BF}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "MemKV.Protocol", "src\MemKV.Protocol\MemKV.Protocol.fsproj", "{6F781EF9-14FD-44E3-87D8-1D10752120FB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{8A444B1E-421B-495C-BD03-00ED2D7A6509}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{AC7CAACC-E2D1-4BDA-9A18-D040CB4D12A2}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "MemKV.Protocol.Tests", "test\MemKV.Protocol.Tests\MemKV.Protocol.Tests.fsproj", "{DCC4BF81-7520-499E-B38A-18B27C124A2B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -8,9 +16,22 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{88C0B673-339D-443F-ADAF-57614A20C206}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{88C0B673-339D-443F-ADAF-57614A20C206}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{88C0B673-339D-443F-ADAF-57614A20C206}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{88C0B673-339D-443F-ADAF-57614A20C206}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ADFAEFF2-8CE9-4826-9BD0-A2662FF909BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ADFAEFF2-8CE9-4826-9BD0-A2662FF909BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ADFAEFF2-8CE9-4826-9BD0-A2662FF909BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ADFAEFF2-8CE9-4826-9BD0-A2662FF909BF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F781EF9-14FD-44E3-87D8-1D10752120FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F781EF9-14FD-44E3-87D8-1D10752120FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F781EF9-14FD-44E3-87D8-1D10752120FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F781EF9-14FD-44E3-87D8-1D10752120FB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCC4BF81-7520-499E-B38A-18B27C124A2B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCC4BF81-7520-499E-B38A-18B27C124A2B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCC4BF81-7520-499E-B38A-18B27C124A2B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCC4BF81-7520-499E-B38A-18B27C124A2B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{6F781EF9-14FD-44E3-87D8-1D10752120FB} = {AC7CAACC-E2D1-4BDA-9A18-D040CB4D12A2}
+		{ADFAEFF2-8CE9-4826-9BD0-A2662FF909BF} = {AC7CAACC-E2D1-4BDA-9A18-D040CB4D12A2}
+		{DCC4BF81-7520-499E-B38A-18B27C124A2B} = {8A444B1E-421B-495C-BD03-00ED2D7A6509}
 	EndGlobalSection
 EndGlobal
