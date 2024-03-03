@@ -1,18 +1,21 @@
 namespace MemKV
 
+open System
 open System.Net
 open System.Net.Sockets
 open System.Threading
+open System.Threading.Tasks
 open MemKV.Protocol
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
-
 
 type Worker(logger: ILogger<Worker>) =
     inherit BackgroundService()
 
     let DEFAULT_REDIS_PORT = 6379
     let BUFFER_SIZE = 4096 // 4KB
+
+    let SaveInterval = TimeSpan.FromSeconds 10
 
     let storage = DictionaryStore()
 
@@ -44,6 +47,17 @@ type Worker(logger: ILogger<Worker>) =
         | Save ->
             storage.Save()
             SimpleString "OK"
+
+    member private this.SaveOnChanges(ct: CancellationToken) =
+        task {
+            while not ct.IsCancellationRequested do
+                if storage.IsDirty then
+                    storage.Save()
+                    logger.LogInformation("Store saved to disk")
+
+                do! Task.Delay(SaveInterval, ct)
+        }
+
 
     member private this.HandleClient(client: TcpClient, ct: CancellationToken) =
         task {
@@ -80,14 +94,19 @@ type Worker(logger: ILogger<Worker>) =
             logger.LogInformation("Starting MemKV server...")
             logger.LogInformation("Loading data from disk...")
             storage.Load()
-            logger.LogInformation("Data loaded")
+
+            logger.LogInformation("Listening to incoming connections on port {port}", DEFAULT_REDIS_PORT)
             let listener = new TcpListener(IPAddress.Any, DEFAULT_REDIS_PORT)
             listener.Start()
 
             while not ct.IsCancellationRequested do
                 let! client = listener.AcceptTcpClientAsync(ct)
                 logger.LogInformation("Client connected: {client}", client.Client.RemoteEndPoint)
-                this.HandleClient(client, ct) |> ignore
+                this.HandleClient(client, ct) |> ignore // fire and forget the task
         }
 
-    override this.ExecuteAsync(ct: CancellationToken) = task { do! this.ListenToTcp(ct) }
+    override this.ExecuteAsync(ct: CancellationToken) =
+        task {
+            let! _ = Task.WhenAll(this.ListenToTcp(ct), this.SaveOnChanges(ct))
+            ()
+        }

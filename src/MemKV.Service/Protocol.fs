@@ -115,8 +115,11 @@ module Message =
 
 type DictionaryStore() =
     let store = ConcurrentDictionary<Key, string>()
+    let mutable dirty = false
 
-    member this.Set(key: Key, value: string) = store[key] <- value
+    member this.Set(key: Key, value: string) =
+        dirty <- true
+        store[key] <- value
 
     member this.Get(key: Key) =
         match store.TryGetValue key with
@@ -127,12 +130,14 @@ type DictionaryStore() =
         keys |> List.map (fun key -> store.ContainsKey key)
 
     member this.Delete(keys: Key list) =
+        dirty <- true
         keys |> List.map (fun key -> store.Remove key) |> List.map fst
 
     member this.GetOrSetDefault(key: Key, fallback: string) =
         match store.TryGetValue key with
         | true, value -> value
         | _ ->
+            dirty <- true
             store[key] <- fallback
             fallback
 
@@ -142,7 +147,7 @@ type DictionaryStore() =
 
         match Int32.TryParse v with
         | true, value ->
-            store[key] <- (value + 1).ToString()
+            this.Set(key, (value + 1).ToString())
             Integer(value + 1)
         | _ -> Error $"Value \"{v}\" is not an integer"
 
@@ -151,11 +156,12 @@ type DictionaryStore() =
 
         match Int32.TryParse v with
         | true, value ->
-            store[key] <- (value - 1).ToString()
+            this.Set(key, (value - 1).ToString())
             Integer(value - 1)
         | _ -> Error $"Value \"{v}\" is not an integer"
 
     member this.Save() =
+        dirty <- false
         File.WriteAllText(
             this.PathToStore,
             store |> Seq.map (fun kv -> $"{kv.Key}={kv.Value}") |> String.concat "\n")
@@ -177,3 +183,5 @@ type DictionaryStore() =
 
     member private this.PathToStore =
         Path.Combine(Directory.GetCurrentDirectory(), "store.db")
+
+    member this.IsDirty = dirty
