@@ -1,6 +1,9 @@
 ﻿namespace MemKV.Protocol
 
 open System
+open System.Collections.Generic
+
+type Key = string
 
 type DataType =
     | SimpleString of string
@@ -12,19 +15,21 @@ type DataType =
 
 and Command =
     | Ping of string option
-    | Set of string * string
-    | Get of string
-    | Exists of string list
-    | Del of string list
+    | Set of Key * string
+    | Get of Key
+    | Exists of Key list
+    | Delete of Key list
+    | Increment of Key
+    | Decrement of Key
 
 module Message =
     let terminator = "\r\n"
 
     let rec private parse (data: string) : (DataType * string) =
-        let prefix = data.[0]
+        let prefix = data[0]
         let nextTerminator = data.IndexOf(terminator)
-        let msg = data.[1 .. nextTerminator - 1]
-        let remainder = data.[nextTerminator + 2 ..]
+        let msg = data[1 .. nextTerminator - 1]
+        let remainder = data[nextTerminator + 2 ..]
 
         match prefix with
         | '+' -> (SimpleString msg, remainder)
@@ -38,8 +43,8 @@ module Message =
             else
                 let start = nextTerminator + 2
                 let endIdx = start + length
-                let nextData = data.[start .. endIdx - 1]
-                let nextRemainder = if data.Length > endIdx then data.[endIdx + 2 ..] else ""
+                let nextData = data[start .. endIdx - 1]
+                let nextRemainder = if data.Length > endIdx then data[endIdx + 2 ..] else ""
                 (BulkString(Some nextData), nextRemainder)
         | '*' ->
             let count = int msg
@@ -74,7 +79,9 @@ module Message =
         | Array(Some [ BulkString(Some "SET"); BulkString(Some key); BulkString(Some value) ]) -> Some(Set(key, value))
         | Array(Some [ BulkString(Some "GET"); BulkString(Some key) ]) -> Some(Get key)
         | Array(Some(BulkString(Some "EXISTS") :: keys)) -> keys |> parseKeys |> Exists |> Some
-        | Array(Some(BulkString(Some "DEL") :: keys)) -> keys |> parseKeys |> Del |> Some
+        | Array(Some(BulkString(Some "DEL") :: keys)) -> keys |> parseKeys |> Delete |> Some
+        | Array(Some [ BulkString(Some "INCR"); BulkString(Some key) ]) -> Some(Increment key)
+        | Array(Some [ BulkString(Some "DECR"); BulkString(Some key) ]) -> Some(Decrement key)
         | _ -> None
 
     let parseMessage (data: string) : DataType =
@@ -101,3 +108,45 @@ module Message =
 
             result
         | Cmd cmd -> failwith $"Cannot serialize command: %A{cmd}"
+
+type DictionaryStore() =
+    let store = SortedDictionary<Key, string>()
+
+    member this.Set(key: Key, value: string) = store[key] <- value
+
+    member this.Get(key: Key) =
+        match store.TryGetValue key with
+        | true, value -> Some value
+        | _ -> None
+
+    member this.Exists(keys: Key list) =
+        keys |> List.map (fun key -> store.ContainsKey key)
+
+    member this.Delete(keys: Key list) =
+        keys |> List.map (fun key -> store.Remove key)
+
+    member this.GetOrSetDefault(key: Key, fallback: string) =
+        match store.TryGetValue key with
+        | true, value -> value
+        | _ ->
+            store[key] <- fallback
+            fallback
+
+
+    member this.Increment(key: Key) =
+        let v = this.GetOrSetDefault(key, "0")
+
+        match Int32.TryParse v with
+        | true, value ->
+            store[key] <- (value + 1).ToString()
+            Integer(value + 1)
+        | _ -> Error $"Value \"{v}\" is not an integer"
+
+    member this.Decrement(key: Key) =
+        let v = this.GetOrSetDefault(key, "0")
+
+        match Int32.TryParse v with
+        | true, value ->
+            store[key] <- (value - 1).ToString()
+            Integer(value - 1)
+        | _ -> Error $"Value \"{v}\" is not an integer"

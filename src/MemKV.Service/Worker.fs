@@ -12,9 +12,9 @@ type Worker(logger: ILogger<Worker>) =
     inherit BackgroundService()
 
     let DEFAULT_REDIS_PORT = 6379
-    let BUFFER_SIZE = 1024
+    let BUFFER_SIZE = 4096 // 4KB
 
-    let storage = System.Collections.Generic.SortedDictionary<string, string>()
+    let storage = DictionaryStore()
 
     member private this.HandleCommand(command) =
         match command with
@@ -23,24 +23,24 @@ type Worker(logger: ILogger<Worker>) =
             | Some s -> BulkString(Some s)
             | None -> SimpleString "PONG"
         | Set(k, v) ->
-            storage[k] <- v
+            storage.Set(k, v)
             SimpleString "OK"
         | Get k ->
-            match storage.TryGetValue k with
-            | true, v -> BulkString(Some v)
-            | false, _ -> BulkString None
+            match storage.Get k with
+            | None -> BulkString None
+            | Some v -> BulkString(Some v)
         | Exists keys ->
-            keys
-            |> List.map storage.ContainsKey
+            storage.Exists keys
             |> List.map (fun b -> if b then 1 else 0)
             |> List.sum
             |> Integer
-        | Del keys ->
-            keys
-            |> List.map storage.Remove
+        | Delete keys ->
+            storage.Delete keys
             |> List.map (fun b -> if b then 1 else 0)
             |> List.sum
             |> Integer
+        | Increment key -> storage.Increment key
+        | Decrement key -> storage.Decrement key
 
     member private this.HandleClient(client: TcpClient, ct: CancellationToken) =
         task {
