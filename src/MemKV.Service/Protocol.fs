@@ -3,6 +3,7 @@
 open System
 open System.Collections.Concurrent
 open System.Collections.Generic
+open System.IO
 
 type Key = string
 
@@ -22,11 +23,12 @@ and Command =
     | Delete of Key list
     | Increment of Key
     | Decrement of Key
+    | Save
 
 module Message =
     let terminator = "\r\n"
 
-    let rec private parse (data: string) : (DataType * string) =
+    let rec private parse (data: string) : DataType * string =
         let prefix = data[0]
         let nextTerminator = data.IndexOf(terminator)
         let msg = data[1 .. nextTerminator - 1]
@@ -57,7 +59,7 @@ module Message =
                 let mutable nextData = remainder
 
                 for _ in 1..count do
-                    let (parsed, newRemainder) = parse nextData
+                    let parsed, newRemainder = parse nextData
                     elements <- elements @ [ parsed ]
                     nextData <- newRemainder
 
@@ -83,6 +85,7 @@ module Message =
         | Array(Some(BulkString(Some "DEL") :: keys)) -> keys |> parseKeys |> Delete |> Some
         | Array(Some [ BulkString(Some "INCR"); BulkString(Some key) ]) -> Some(Increment key)
         | Array(Some [ BulkString(Some "DECR"); BulkString(Some key) ]) -> Some(Decrement key)
+        | Array(Some [ BulkString(Some "SAVE") ]) -> Some Save
         | _ -> None
 
     let parseMessage (data: string) : DataType =
@@ -151,3 +154,26 @@ type DictionaryStore() =
             store[key] <- (value - 1).ToString()
             Integer(value - 1)
         | _ -> Error $"Value \"{v}\" is not an integer"
+
+    member this.Save() =
+        File.WriteAllText(
+            this.PathToStore,
+            store |> Seq.map (fun kv -> $"{kv.Key}={kv.Value}") |> String.concat "\n")
+
+    member this.Load() =
+        if File.Exists(this.PathToStore) then
+            let data = File.ReadAllText(this.PathToStore)
+            let lines = data.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+
+            let entries =
+                lines
+                |> Array.map (_.Split('=', 2))
+                |> Array.map (fun parts -> (parts.[0], parts.[1]))
+
+            store.Clear()
+
+            for key, value in entries do
+                store[key] <- value
+
+    member private this.PathToStore =
+        Path.Combine(Directory.GetCurrentDirectory(), "store.db")

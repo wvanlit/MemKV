@@ -41,6 +41,9 @@ type Worker(logger: ILogger<Worker>) =
             |> Integer
         | Increment key -> storage.Increment key
         | Decrement key -> storage.Decrement key
+        | Save ->
+            storage.Save()
+            SimpleString "OK"
 
     member private this.HandleClient(client: TcpClient, ct: CancellationToken) =
         task {
@@ -74,6 +77,10 @@ type Worker(logger: ILogger<Worker>) =
 
     member private this.ListenToTcp(ct: CancellationToken) =
         task {
+            logger.LogInformation("Starting MemKV server...")
+            logger.LogInformation("Loading data from disk...")
+            storage.Load()
+            logger.LogInformation("Data loaded")
             let listener = new TcpListener(IPAddress.Any, DEFAULT_REDIS_PORT)
             listener.Start()
 
