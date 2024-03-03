@@ -1,6 +1,7 @@
 ﻿namespace MemKV.Protocol
 
 open System
+open System.Collections.Concurrent
 open System.Collections.Generic
 
 type Key = string
@@ -110,7 +111,7 @@ module Message =
         | Cmd cmd -> failwith $"Cannot serialize command: %A{cmd}"
 
 type DictionaryStore() =
-    let store = SortedDictionary<Key, string>()
+    let store = ConcurrentDictionary<Key, string>()
 
     member this.Set(key: Key, value: string) = store[key] <- value
 
@@ -123,7 +124,7 @@ type DictionaryStore() =
         keys |> List.map (fun key -> store.ContainsKey key)
 
     member this.Delete(keys: Key list) =
-        keys |> List.map (fun key -> store.Remove key)
+        keys |> List.map (fun key -> store.Remove key) |> List.map fst
 
     member this.GetOrSetDefault(key: Key, fallback: string) =
         match store.TryGetValue key with
